@@ -1,23 +1,18 @@
 const express = require('express');
 const session = require('express-session');
 const server = express();
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const writeFile = util.promisify(fs.writeFile);
+const mysql = require('mysql2');
 
 require('dotenv').config();
 
-const port = 80;
-const messagesFilePath = path.join(__dirname, 'data', 'messages.json');
-
-let messages;
-try {
-    messages = JSON.parse(fs.readFileSync(messagesFilePath, { 'encoding': 'utf8' }));
-} catch (error) {
-    console.error(error);
-    messages = [];
-}
+const port = process.env.PORT;
+const db = mysql.createConnection({
+    host     : process.env.DB_HOST,
+    port     : process.env.DB_PORT,
+    user     : process.env.DB_USER,
+    password : process.env.DB_PASS,
+    database : process.env.DB_NAME
+});
 
 server.set('view engine', 'ejs');
 server.use(express.static('public'));
@@ -29,9 +24,15 @@ server.use(session({
 }));
 
 server.get('/', (request, response) => {
-    response.render('index', {
-        'messages': messages,
-        'session': request.session
+    db.query('SELECT * FROM messages', (error, results) => {
+        if (error) {
+            console.error(error);
+        }
+
+        response.render('index', {
+            'messages': results,
+            'session': request.session
+        });
     });
 });
 
@@ -39,13 +40,12 @@ server.post('/message/create', async (request, response) => {
     const name = request.body.name;
     const message = request.body.message;
     if (name && message) {
-        messages.push({ name, message });
-        try {
-            await writeFile(messagesFilePath, JSON.stringify(messages));
-        } catch(error) {
-            console.error(error);
-        }
-        response.redirect('/');
+        db.query('INSERT INTO messages SET name=?, content=?', [name, message], (error) => {
+            if (error) {
+                console.error(error);
+            }
+            response.redirect('/');
+        });
     } else {
         request.session.errorMessage = 'Имя или сообщение не могут быть пустыми';
         response.redirect('/');
