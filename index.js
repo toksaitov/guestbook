@@ -1,17 +1,31 @@
 const express = require('express');
 const session = require('express-session');
 const server = express();
-const mysql = require('mysql2');
+const Sequelize = require('sequelize');
+const moment = require('moment');
 
 require('dotenv').config();
 
 const port = process.env.PORT;
-const db = mysql.createConnection({
-    host     : process.env.DB_HOST,
-    port     : process.env.DB_PORT,
-    user     : process.env.DB_USER,
-    password : process.env.DB_PASS,
-    database : process.env.DB_NAME
+const sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER, process.env.DB_PASS,
+    {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        dialect: process.env.DB_DIALECT
+    }
+);
+
+const Message = sequelize.define('Message', {
+    name: {
+      type: Sequelize.STRING,
+      allowNull: false
+    },
+    content: {
+      type: Sequelize.STRING(1024),
+      allowNull: false
+    }
 });
 
 server.set('view engine', 'ejs');
@@ -22,34 +36,27 @@ server.use(session({
     resave: true,
     saveUninitialized: true
 }));
+server.locals.moment = moment;
 
-server.get('/', (request, response) => {
-    db.query('SELECT * FROM messages', (error, results) => {
-        if (error) {
-            console.error(error);
-        }
-
-        response.render('index', {
-            'messages': results,
-            'session': request.session
-        });
-    });
+server.get('/', async (request, response) => {
+    const messages = await Message.findAll();
+    response.render('index', { messages, 'session': request.session });
 });
 
 server.post('/message/create', async (request, response) => {
     const name = request.body.name;
-    const message = request.body.message;
-    if (name && message) {
-        db.query('INSERT INTO messages SET name=?, content=?', [name, message], (error) => {
-            if (error) {
-                console.error(error);
-            }
-            response.redirect('/');
-        });
+    const content = request.body.content;
+    if (name && content) {
+        await Message.create({ name, content });
     } else {
         request.session.errorMessage = 'Имя или сообщение не могут быть пустыми';
-        response.redirect('/');
     }
+
+    response.redirect('/');
 });
 
-server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));
+(async () => {
+    await sequelize.sync();
+
+    server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));    
+})();

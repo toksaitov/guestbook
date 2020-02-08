@@ -15,6 +15,7 @@
                 <div class="message">
                     <strong><%= entry.name %></strong>
                     <p><%= entry.content %></p>
+                    <em><%= moment(entry.createdAt).format('LLL'); %></em>
                 </div>
             <% } %>
         </section>
@@ -32,7 +33,7 @@
         </label><br>
         <label>
             Ваше сообщение:<br>
-            <textarea cols="30" rows="10" name="message"></textarea>
+            <textarea cols="30" rows="10" name="content"></textarea>
         </label><br>
         <input type="submit" value="Опубликовать">
     </form>
