@@ -1,9 +1,7 @@
-const express = require('express');
-const session = require('express-session');
-const server = express();
+const express   = require('express');
+const session   = require('express-session');
 const Sequelize = require('sequelize');
-const moment = require('moment');
-
+const moment    = require('moment');
 require('dotenv').config();
 
 const port = process.env.PORT;
@@ -28,6 +26,7 @@ const Message = sequelize.define('Message', {
     }
 });
 
+const server = express();
 server.set('view engine', 'ejs');
 server.use(express.static('public'));
 server.use(express.urlencoded({ extended: true }));
@@ -39,7 +38,12 @@ server.use(session({
 server.locals.moment = moment;
 
 server.get('/', async (request, response) => {
-    const messages = await Message.findAll();
+    const messages = [];
+    try {
+        messages = await Message.findAll();
+    } catch(error) {
+        console.log(error);
+    }
     response.render('index', { messages, 'session': request.session });
 });
 
@@ -47,7 +51,11 @@ server.post('/message/create', async (request, response) => {
     const name = request.body.name;
     const content = request.body.content;
     if (name && content) {
-        await Message.create({ name, content });
+        try {
+            await Message.create({ name, content });
+        } catch(error) {
+            console.log(error);
+        }
     } else {
         request.session.errorMessage = 'Имя или сообщение не могут быть пустыми';
     }
@@ -58,5 +66,6 @@ server.post('/message/create', async (request, response) => {
 (async () => {
     await sequelize.sync();
 
-    server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));    
+    server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));
 })();
+
