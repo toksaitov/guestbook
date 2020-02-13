@@ -1,0 +1,19 @@
+version: "2"
+
+services:
+  guestbook:
+    build: "."
+    image: "toksaitov/guestbook"
+    ports:
+      - "80:80"
+    env_file: ".env"
+    depends_on:
+      - "guestbook-db"
+
+  guestbook-db:
+    image: "mysql:5.7.29"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASS}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASS}"

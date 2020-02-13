@@ -38,7 +38,7 @@ server.use(session({
 server.locals.moment = moment;
 
 server.get('/', async (request, response) => {
-    const messages = [];
+    let messages = [];
     try {
         messages = await Message.findAll();
     } catch(error) {
@@ -63,9 +63,16 @@ server.post('/message/create', async (request, response) => {
     response.redirect('/');
 });
 
-(async () => {
-    await sequelize.sync();
+(function loop(){
+    setTimeout(async () => {
+        try {
+            await sequelize.sync();
+            server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));
+        } catch (error) {
+            console.error(error);
+            console.error("Failed to connect. Trying again...");
 
-    server.listen(port, () => console.log(`Guestbook is listening on port ${port}!`));
+            loop();
+        }
+    }, process.env.DB_RECONNECT_TIMEOUT || 2000);
 })();
-
