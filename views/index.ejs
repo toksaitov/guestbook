@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guestbook</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <%- include('partials/error_banner', { 'session': session }) %>
+    <%- include('partials/message_form', { 'message': message }) %>
+    <%- include('partials/messages', { 'messages': messages, 'userID': userID }) %>
+</body>
+</html>

@@ -1,0 +1,21 @@
+body {
+    padding: 1em;
+}
+
+input[type="text"], textarea {
+    width: 20em;
+}
+
+.delete-message-form {
+    display: inline;   
+}
+
+.error-message {
+    width: 16em;
+    margin: 1em 0;
+    padding: 0 0 0 1em;
+    color: rgb(95, 0, 0);
+    background-color: rgb(255, 212, 212);
+    border: rgb(156, 0, 0) 0.05em solid;
+    border-radius: 0.8em;
+}

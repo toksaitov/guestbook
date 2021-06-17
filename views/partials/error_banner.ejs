@@ -1,0 +1,6 @@
+<% if (session.errorMessage) { %>
+    <div class="error-message">
+        <p><%= session.errorMessage %></p>
+        <% session.errorMessage = null %>
+    </div>
+<% } %>
