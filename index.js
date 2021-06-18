@@ -38,6 +38,8 @@ function validateName(name, request, response, location = '/') {
   return true
 }
 
+// TODO: more checks are required
+
 function validateContent(content, request, response, location = '/') {
   if (content.trim() === '') {
     request.session.errorMessage = "Message content can't be empty"
@@ -64,6 +66,13 @@ app.post('/create-message', (request, response) => {
 
 app.post('/delete-message/:id', (request, response) => {
   const id = request.params.id
+
+  const userID = request.session.id
+  const message = messages.find(message => message.id === id)
+  if (message.userID !== userID) {
+    return response.status(403).end()
+  }
+
   messages = messages.filter(message => message.id !== id)
   fs.writeFileSync('messages.json', JSON.stringify(messages))
   response.redirect('/')
@@ -72,12 +81,24 @@ app.post('/delete-message/:id', (request, response) => {
 app.get('/edit-message/:id', (request, response) => {
   const id = request.params.id
   const session = request.session
+
+  const userID = request.session.id
   const message = messages.find(message => message.id === id)
+  if (message.userID !== userID) {
+    return response.status(403).end()
+  }
+
   response.render('edit_message', { message, session })
 })
 
 app.post('/edit-message/:id', (request, response) => {
   const id = request.params.id
+
+  const userID = request.session.id
+  const message = messages.find(message => message.id === id)
+  if (message.userID !== userID) {
+    return response.status(403).end()
+  }
 
   const name = request.body.name
   if (!validateName(name, request, response, `/edit-message/${id}`)) return
