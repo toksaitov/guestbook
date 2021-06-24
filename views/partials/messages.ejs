@@ -1,9 +1,9 @@
 <ul class="messages">
     <% for (const message of messages) { %>
         <li class="message">
-            <% if (message.userID === userID) { %>
-                <a href="/edit-message/<%= message.id %>">Edit</a>
-                <form class="delete-message-form" action="/delete-message/<%= message.id %>" method="POST">
+            <% if (message.user_id === userID) { %>
+                <a href="/edit-message/<%= message.message_id %>">Edit</a>
+                <form class="delete-message-form" action="/delete-message/<%= message.message_id %>" method="POST">
                     <input type="submit" value="X">
                 </form>
             <% } %>

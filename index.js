@@ -1,17 +1,17 @@
 const express = require('express')
 const session = require('express-session')
-const uuid = require('uuid')
-const fs = require('fs')
+const mysql = require('mysql2')
+require('dotenv').config()
 
 const app = express()
 const port = 8080
 
-let messages
-try {
-  messages = JSON.parse(fs.readFileSync('messages.json', 'utf8'))
-} catch(ignored) {
-  messages = []
-}
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
+});
 
 app.set('view engine', 'ejs')
 app.use(express.static('public'))
@@ -26,7 +26,14 @@ app.get('/', (request, response) => {
   const userID = request.session.id
   const session = request.session
   const message = null
-  response.render('index', { session, messages, message, userID })
+
+  db.query('SELECT * FROM message;', (error, messages) => {
+    if (error) {
+      console.error(error)
+      return response.status(503).end()
+    }
+    response.render('index', { session, messages, message, userID })
+  })
 })
 
 function validateName(name, request, response, location = '/') {
@@ -50,7 +57,6 @@ function validateContent(content, request, response, location = '/') {
 }
 
 app.post('/create-message', (request, response) => {
-  const id = uuid.v4()
   const userID = request.session.id
 
   const name = request.body.name
@@ -59,46 +65,55 @@ app.post('/create-message', (request, response) => {
   const content = request.body.content
   if (!validateContent(content, request, response)) return
   
-  messages = [...messages, { id, userID, name, content }]
-  fs.writeFileSync('messages.json', JSON.stringify(messages))
-  response.redirect('/')
+  const query = 'INSERT INTO message (user_id, name, content) VALUES (?, ?, ?);'
+  db.query(query, [userID, name, content], error => {
+    if (error) {
+      console.error(error)
+      return response.status(503).end()
+    }
+    response.redirect('/')
+  })
 })
 
 app.post('/delete-message/:id', (request, response) => {
   const id = request.params.id
-
   const userID = request.session.id
-  const message = messages.find(message => message.id === id)
-  if (message.userID !== userID) {
-    return response.status(403).end()
-  }
-
-  messages = messages.filter(message => message.id !== id)
-  fs.writeFileSync('messages.json', JSON.stringify(messages))
-  response.redirect('/')
+  
+  const query = "DELETE FROM message WHERE (message_id = ? and user_id = ?);"
+  db.query(query, [id, userID], (error, result) => {
+    if (error) {
+      console.error(error)
+      return response.status(503).end()
+    }
+    if (result.affectedRows === 0) {
+      return response.status(403).end()
+    }
+    response.redirect('/')
+  })
 })
 
 app.get('/edit-message/:id', (request, response) => {
   const id = request.params.id
   const session = request.session
-
   const userID = request.session.id
-  const message = messages.find(message => message.id === id)
-  if (message.userID !== userID) {
-    return response.status(403).end()
-  }
-
-  response.render('edit_message', { message, session })
+  
+  const query = 'SELECT * FROM message WHERE (message_id = ? AND user_id = ?);'
+  db.query(query, [id, userID], (error, messages) => {
+    if (error) {
+      console.error(error)
+      return response.status(503).end()
+    }
+    if (messages.length !== 1) {
+      return response.status(403).end()
+    }
+    const message = messages[0]
+    response.render('edit_message', { message, session })
+  })
 })
 
 app.post('/edit-message/:id', (request, response) => {
   const id = request.params.id
-
   const userID = request.session.id
-  const message = messages.find(message => message.id === id)
-  if (message.userID !== userID) {
-    return response.status(403).end()
-  }
 
   const name = request.body.name
   if (!validateName(name, request, response, `/edit-message/${id}`)) return
@@ -106,9 +121,17 @@ app.post('/edit-message/:id', (request, response) => {
   const content = request.body.content
   if (!validateContent(content, request, response, `/edit-message/${id}`)) return
 
-  messages = messages.map(message => message.id === id ? { ...message, name, content } : message)
-  fs.writeFileSync('messages.json', JSON.stringify(messages))
-  response.redirect('/')
+  const query = 'UPDATE message SET name = ?, content = ? WHERE (message_id = ? AND user_id = ?);'
+  db.query(query, [name, content, id, userID], (error, result) => {
+    if (error) {
+      console.error(error)
+      return response.status(503).end()
+    }
+    if (result.affectedRows === 0) {
+      return response.status(403).end()
+    }
+    response.redirect('/')
+  })
 })
 
 app.listen(port, () => {
