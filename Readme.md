@@ -21,6 +21,7 @@ DB_PORT=3306      # database port
 DB_USER=?         # name of the database user
 DB_PASS=?         # password of that user
 DB_NAME=?         # name of the database itself
+DB_DIALECT=?      # SQL dialect (mysql, mariadb, postgres, mssql)
 ```
 
 2. Download and install npm libraries
